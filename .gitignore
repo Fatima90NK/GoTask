@@ -1,0 +1,19 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+*.out
+
+# vendor directory
+vendor/
+
+#editor directories
+.idea/
+.vscode/
+.DS_Store
+*.log
+
