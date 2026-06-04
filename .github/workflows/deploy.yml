@@ -1,0 +1,70 @@
+name: Build and Deploy to Kubernetes
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/gotask
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3         
+
+    # Step 2: Set up Go
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    # Step 3: Run tests
+    - name: Run tests
+      run: go test ./... -v
+
+    # Step 4: Build Docker Buildx
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    # Step 5: Log in to Docker Hub
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ env.DOCKER_USERNAME }}
+        password: ${{ env.DOCKER_PASSWORD }}
+
+    # Step 6: Build and push Docker image
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}, ${{ env.DOCKER_IMAGE }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+    # Step 7: Update Kubernetes deployment
+    - name: Update Kubernetes deployment image
+      run: |
+         sed -i "s|YOUR_DOCKER_USERNAME/gotask:v1|${{ env.DOCKER_IMAGE }}:${{ github.sha }}|g" k8s/deployment.yaml
+    
+    # Step 8: Deploy to Kubernetes
+    - name: Deploy to Kubernetes
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+      run: |
+        mkdir -p $HOME/.kube
+        echo "$KUBE_CONFIG" | base64 -d > $HOME/.kube/config
+        kubectl apply -f k8s/namespace.yaml
+        kubectl apply -f k8s/secret.yaml
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl rollout status deployment/gotask-deployment -n gotask

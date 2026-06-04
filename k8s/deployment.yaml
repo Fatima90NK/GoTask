@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotask-deployment
+  namespace: gotask
+  labels:
+    app: gotask
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gotask
+  template:
+    metadata:
+      labels:
+        app: gotask
+    spec:
+      containers:
+      - name: gotask
+        image: YOUR_DOCKER_USERNAME/gotask:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: MONGO_URI
+          valueFrom:
+            secretKeyRef:
+              name: gotask-secret
+              key: MONGO_URI
+        livenessProbe:
+          httpGet:
+            path: /tasks
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /tasks
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi

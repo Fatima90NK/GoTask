@@ -17,3 +17,5 @@ vendor/
 .DS_Store
 *.log
 
+k8s/secret.yaml
+k8s/secret.yaml

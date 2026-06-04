@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotask-service
+  namespace: gotask
+  labels:
+    app: gotask
+spec:
+  type: LoadBalancer
+  selector:
+    app: gotask
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
